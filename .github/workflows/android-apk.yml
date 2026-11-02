@@ -1,10 +1,9 @@
-name: Build YOUSIVAR Android APK
+name: Build YOUSIVAR Release APK
 
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
+    branches: [main]
     paths:
       - 'src/**'
       - 'public/**'
@@ -20,13 +19,13 @@ permissions:
 jobs:
   android:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 45
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -40,26 +39,93 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
-      - name: Build web application
+      - name: Build web app
         run: npm run build
 
-      - name: Initialize Android project
+      - name: Initialize Android
         run: |
           if [ ! -d android ]; then
             npx cap add android
           fi
           npx cap sync android
 
-      - name: Build debug APK
-        working-directory: android
+      - name: Configure signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          chmod +x gradlew
-          ./gradlew assembleDebug
+          test -n "$ANDROID_KEYSTORE_BASE64"
+          test -n "$ANDROID_KEYSTORE_PASSWORD"
+          test -n "$ANDROID_KEY_ALIAS"
+          test -n "$ANDROID_KEY_PASSWORD"
 
-      - name: Upload APK
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/yousivar-release.jks"
+
+          {
+            echo "storeFile=$RUNNER_TEMP/yousivar-release.jks"
+            echo "storePassword=$ANDROID_KEYSTORE_PASSWORD"
+            echo "keyAlias=$ANDROID_KEY_ALIAS"
+            echo "keyPassword=$ANDROID_KEY_PASSWORD"
+          } > "$RUNNER_TEMP/keystore.properties"
+
+          echo "KEYSTORE_PROPERTIES=$RUNNER_TEMP/keystore.properties" >> "$GITHUB_ENV"
+
+      - name: Build signed release APK
+        working-directory: android
+        env:
+          KEYSTORE_PROPERTIES: ${{ runner.temp }}/keystore.properties
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("app/build.gradle")
+          if not p.exists():
+              p = Path("app/build.gradle.kts")
+          if not p.exists():
+              raise SystemExit("Android Gradle build file not found")
+
+          text = p.read_text()
+          if p.name == "build.gradle":
+              signing = '''
+              def signingPropsFile = System.getenv("KEYSTORE_PROPERTIES")
+              def signingProps = new Properties()
+              if (signingPropsFile != null) {
+                  file(signingPropsFile).withInputStream { signingProps.load(it) }
+              }
+
+              android {
+                  signingConfigs {
+                      release {
+                          storeFile file(signingProps['storeFile'])
+                          storePassword signingProps['storePassword']
+                          keyAlias signingProps['keyAlias']
+                          keyPassword signingProps['keyPassword']
+                      }
+                  }
+              '''
+              if "signingConfigs {" not in text:
+                  text = text.replace("android {", signing, 1)
+              if "signingConfig signingConfigs.release" not in text:
+                  text = text.replace(
+                      "buildTypes {",
+                      "buildTypes {\\n        release { signingConfig signingConfigs.release }",
+                      1
+                  )
+          else:
+              raise SystemExit(
+                  "Kotlin DSL detected; configure release signing for build.gradle.kts explicitly."
+              )
+          p.write_text(text)
+          PY
+
+          chmod +x gradlew
+          ./gradlew assembleRelease
+
+      - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:
-          name: yousivar-omega-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: yousivar-omega-release-apk
+          path: android/app/build/outputs/apk/release/*.apk
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 30
