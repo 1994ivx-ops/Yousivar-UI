@@ -14,7 +14,7 @@ on:
       - '.github/workflows/android-apk.yml'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   android:
@@ -171,3 +171,22 @@ jobs:
           path: android/app/build/outputs/apk/release/*.apk
           if-no-files-found: error
           retention-days: 30
+
+      - name: Publish APK to GitHub Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          APK="$(find android/app/build/outputs/apk/release -maxdepth 1 -type f -name '*.apk' -print -quit)"
+          test -n "$APK"
+          test -s "$APK"
+          TAG="v1.0.${GITHUB_RUN_NUMBER}-build${GITHUB_RUN_ATTEMPT}"
+          gh release create "$TAG" "$APK#YOUSIVAR-OMEGA.apk" \
+            --title "YOUSIVAR–Ω $TAG" \
+            --notes "YOUSIVAR–Ω Android Release.
+
+          Signed release APK for direct download.
+
+          Build: ${GITHUB_RUN_NUMBER}
+          Commit: ${GITHUB_SHA}" \
+            --latest
