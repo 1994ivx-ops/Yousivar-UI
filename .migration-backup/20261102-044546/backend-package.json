@@ -1,0 +1,27 @@
+{
+  "name": "yousivar-backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "YOUSIVAR–Ω independent API — Hono on Cloudflare Workers (or Node), PostgreSQL on Neon",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "node --watch src/node.js",
+    "start": "node src/node.js",
+    "check": "node --check src/index.js && node --check src/node.js",
+    "test": "node --test test/*.test.mjs",
+    "deploy": "wrangler deploy",
+    "deploy:preview": "wrangler versions upload",
+    "db:migrate": "node scripts/migrate.js"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^0.10.4",
+    "hono": "^4.6.14"
+  },
+  "devDependencies": {
+    "@hono/node-server": "^1.13.7",
+    "wrangler": "^3.99.0"
+  }
+}
