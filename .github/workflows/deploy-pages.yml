@@ -40,33 +40,6 @@ jobs:
       - name: Install Wrangler
         run: npm install --global wrangler@3.99.0
 
-      - name: Create Pages project if needed
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          response="$(curl -sS \
-            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects")"
-
-          if echo "$response" | grep -q '"name":"yousivar-ui"'; then
-            echo "Pages project already exists."
-          else
-            create_response="$(curl -sS -X POST \
-              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-              -H "Content-Type: application/json" \
-              --data '{"name":"yousivar-ui","production_branch":"main"}' \
-              "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects")"
-
-            if ! echo "$create_response" | grep -q '"success":true'; then
-              echo "$create_response"
-              exit 1
-            fi
-            echo "Pages project created."
-          fi
-
       - name: Deploy to Cloudflare Pages
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
