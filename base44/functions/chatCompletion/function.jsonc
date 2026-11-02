@@ -1,0 +1,4 @@
+{
+  "name": "chatCompletion",
+  "entry": "entry.ts"
+}

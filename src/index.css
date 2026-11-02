@@ -1,0 +1,305 @@
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@200;300;400;500;600;700&family=Inter:wght@300;400;500;600&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ────────────────────────────────────────────────────────────────
+   YOUSIVAR monochrome system
+   Charcoal surfaces · silver metal · pure white type. Nothing else.
+   ──────────────────────────────────────────────────────────────── */
+
+@layer base {
+  :root {
+    --background: 0 0% 7%;          /* #121212 */
+    --foreground: 0 0% 100%;        /* #FFFFFF */
+    --card: 0 0% 10%;               /* #191919 */
+    --card-foreground: 0 0% 100%;
+    --popover: 0 0% 8%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 0 0% 87%;            /* #DEDEDE silver */
+    --primary-foreground: 0 0% 5%;
+    --secondary: 0 0% 16%;          /* #292929 */
+    --secondary-foreground: 0 0% 96%;
+    --muted: 0 0% 13%;
+    --muted-foreground: 0 0% 58%;   /* #949494 */
+    --accent: 0 0% 72%;             /* #B8B8B8 */
+    --accent-foreground: 0 0% 6%;
+    --destructive: 0 0% 88%;        /* silver — monochrome errors */
+    --destructive-foreground: 0 0% 6%;
+    --border: 0 0% 24%;             /* #3D3D3D */
+    --input: 0 0% 24%;
+    --ring: 0 0% 78%;
+    --radius: 0.85rem;
+    --font-heading: 'Sora', ui-sans-serif, system-ui, sans-serif;
+    --font-body: 'Inter', 'IBM Plex Sans Arabic', ui-sans-serif, system-ui, sans-serif;
+    --font-display: 'Sora', ui-sans-serif, system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+    --chart-1: 0 0% 94%;
+    --chart-2: 0 0% 78%;
+    --chart-3: 0 0% 62%;
+    --chart-4: 0 0% 46%;
+    --chart-5: 0 0% 32%;
+    --sidebar-background: 0 0% 4%;  /* #0A0A0A */
+    --sidebar-foreground: 0 0% 92%;
+    --sidebar-primary: 0 0% 88%;
+    --sidebar-primary-foreground: 0 0% 5%;
+    --sidebar-accent: 0 0% 14%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 0 0% 18%;
+    --sidebar-ring: 0 0% 78%;
+  }
+
+  /* Silver sheen variants — monochrome, never colour. */
+  html[data-accent="platinum"] { --primary: 0 0% 93%; --ring: 0 0% 86%; }
+  html[data-accent="silver"] { --primary: 0 0% 87%; --ring: 0 0% 78%; }
+  html[data-accent="graphite"] { --primary: 0 0% 70%; --ring: 0 0% 64%; }
+  html[data-accent="pearl"] { --primary: 0 0% 98%; --ring: 0 0% 90%; }
+
+  .light {
+    --background: 0 0% 98%;
+    --foreground: 0 0% 7%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 7%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 7%;
+    --primary: 0 0% 9%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 94%;
+    --secondary-foreground: 0 0% 10%;
+    --muted: 0 0% 95%;
+    --muted-foreground: 0 0% 38%;
+    --accent: 0 0% 28%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 0% 20%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 86%;
+    --input: 0 0% 86%;
+    --ring: 0 0% 30%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 0 0% 14%;
+    --sidebar-accent: 0 0% 95%;
+    --sidebar-accent-foreground: 0 0% 7%;
+    --sidebar-border: 0 0% 89%;
+    --chart-1: 0 0% 12%;
+    --chart-2: 0 0% 32%;
+    --chart-3: 0 0% 48%;
+    --chart-4: 0 0% 64%;
+    --chart-5: 0 0% 80%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  html[dir="rtl"] body {
+    font-family: 'IBM Plex Sans Arabic', 'Inter', ui-sans-serif, sans-serif;
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-heading tracking-tight;
+  }
+
+  ::selection {
+    background: hsl(0 0% 100% / 0.18);
+  }
+
+  ::-webkit-scrollbar {
+    width: 9px;
+    height: 9px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.55);
+  }
+
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring) / 0.8);
+    outline-offset: 2px;
+  }
+}
+
+@layer utilities {
+  .glass {
+    background: linear-gradient(160deg, hsl(0 0% 100% / 0.06), hsl(0 0% 100% / 0.012));
+    border: 1px solid hsl(0 0% 100% / 0.09);
+    backdrop-filter: blur(20px);
+  }
+
+  .light .glass {
+    background: hsl(0 0% 100% / 0.8);
+    border-color: hsl(0 0% 84% / 0.9);
+  }
+
+  .surface {
+    background: hsl(var(--card) / 0.75);
+    border: 1px solid hsl(var(--border) / 0.9);
+  }
+
+  /* Metallic sheen — silver light instead of colour. */
+  .sheen {
+    background:
+      linear-gradient(150deg, hsl(0 0% 100% / 0.09), hsl(0 0% 100% / 0.015) 42%, hsl(0 0% 100% / 0.055));
+  }
+
+  .metal-text {
+    background: linear-gradient(180deg, #ffffff 0%, #d9d9d9 52%, #a6a6a6 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .aurora {
+    background:
+      radial-gradient(58% 48% at 14% 6%, hsl(0 0% 100% / 0.10), transparent 68%),
+      radial-gradient(44% 44% at 86% 10%, hsl(0 0% 100% / 0.07), transparent 70%),
+      radial-gradient(70% 58% at 50% 108%, hsl(0 0% 100% / 0.06), transparent 70%);
+  }
+
+  .text-gradient {
+    background: linear-gradient(100deg, hsl(0 0% 100%) 8%, hsl(0 0% 84%) 55%, hsl(0 0% 66%) 92%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .hairline {
+    box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.07);
+  }
+
+  /* Fine film grain — invisible to readability, adds cinematic depth. */
+  .grain {
+    position: relative;
+  }
+
+  .grain::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.028;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+    mix-blend-mode: overlay;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+
+  .lift {
+    transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 220ms ease, border-color 220ms ease;
+  }
+
+  .lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 18px 40px -28px hsl(0 0% 0% / 0.9);
+    border-color: hsl(0 0% 38% / 0.9);
+  }
+
+  .prose-chat p { @apply mb-3 leading-relaxed last:mb-0; }
+  .prose-chat ul { @apply mb-3 list-disc space-y-1 ps-5; }
+  .prose-chat ol { @apply mb-3 list-decimal space-y-1 ps-5; }
+  .prose-chat h1, .prose-chat h2, .prose-chat h3 { @apply mb-2 mt-4 text-base font-semibold; }
+  .prose-chat a { @apply underline decoration-foreground/40 underline-offset-2; }
+  .prose-chat blockquote { @apply mb-3 border-s-2 border-foreground/40 ps-3 text-muted-foreground; }
+  .prose-chat code { @apply rounded bg-secondary px-1 py-0.5 font-mono text-[0.85em]; }
+  .prose-chat pre { @apply mb-3 overflow-x-auto rounded-xl border border-border/70 bg-secondary/60 p-3 font-mono text-[12.5px]; }
+  .prose-chat pre code { @apply bg-transparent p-0; }
+  .prose-chat table { @apply mb-3 w-full border-collapse text-sm; }
+  .prose-chat th, .prose-chat td { @apply border border-border px-2 py-1 text-start; }
+}
+
+/* Cinematic entrances, kept short so mobile stays fast. */
+@keyframes ysv-rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+.animate-rise {
+  animation: ysv-rise 380ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes ysv-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-fade {
+  animation: ysv-fade 300ms ease both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+html[data-motion="reduced"] * {
+  animation-duration: 0.001ms !important;
+  transition-duration: 0.05ms !important;
+}
+
+/* Chat states — light on the compositor, quiet on battery. */
+@keyframes ysv-dot {
+  0%, 80%, 100% { opacity: 0.35; transform: scale(0.85); }
+  40% { opacity: 1; transform: scale(1); }
+}
+
+.ysv-dot {
+  animation: ysv-dot 1200ms ease-in-out infinite;
+}
+
+@keyframes ysv-aura {
+  0% { transform: scale(0.7); opacity: 0.55; }
+  70% { transform: scale(1.5); opacity: 0; }
+  100% { opacity: 0; }
+}
+
+.ysv-aura {
+  animation: ysv-aura 1900ms cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+@keyframes ysv-pulse {
+  0%, 100% { opacity: 0.6; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.06); }
+}
+
+.ysv-pulse {
+  animation: ysv-pulse 1800ms ease-in-out infinite;
+}
+
+@keyframes ysv-menu-in {
+  from { opacity: 0; transform: translateY(6px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+
+.ysv-menu {
+  animation: ysv-menu-in 160ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-origin: bottom left;
+}
+
+html[dir="rtl"] .ysv-menu {
+  transform-origin: bottom right;
+}

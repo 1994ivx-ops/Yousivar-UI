@@ -1,0 +1,43 @@
+{
+  "name": "ApiKey",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "prefix": {
+      "type": "string",
+      "description": "First characters shown in the UI"
+    },
+    "hash": {
+      "type": "string",
+      "description": "SHA-256 hash of the full key; the key itself is never stored"
+    },
+    "revoked": {
+      "type": "boolean",
+      "default": false
+    },
+    "last_used": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "name",
+    "prefix",
+    "hash"
+  ],
+  "rls": {
+    "read": {
+      "created_by_id": "{{user.id}}"
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    }
+  }
+}

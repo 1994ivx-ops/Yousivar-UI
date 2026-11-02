@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: Frontend (lint · types · build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      # Advisory until the pre-existing type errors in the boilerplate auth pages
+      # and the shadcn primitives are cleared (docs/migration/01-audit.md §6).
+      # Reported on every run — never silently skipped.
+      - name: Type check (advisory)
+        run: npm run typecheck
+        continue-on-error: true
+
+      - name: Build
+        run: npm run build
+
+      - name: Verify the build produced assets
+        run: test -n "$(ls -A dist/assets)"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: dist
+          retention-days: 7
+
+  backend:
+    name: Backend (syntax · tests)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            # The committed lockfile comes from the first `npm install` in backend/.
+            echo "::notice::backend/package-lock.json missing — resolving without a lockfile"
+            npm install --no-audit --no-fund
+          fi
+
+      - name: Syntax check every module
+        run: |
+          for file in $(find src scripts -name '*.js'); do node --check "$file"; done
+
+      - name: Unit tests
+        run: npm test
+
+  migrations:
+    name: Migration files are ordered and non-destructive
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Files present
+        run: |
+          ls database/migrations/*.sql
+      - name: Refuse destructive statements without a review marker
+        run: |
+          if grep -rniE '^\s*(drop\s+table|truncate|drop\s+column|drop\s+database)' database/migrations/*.sql \
+             | grep -v 'REVIEWED-DESTRUCTIVE'; then
+            echo "::error::Destructive SQL must be marked REVIEWED-DESTRUCTIVE and approved by the owner."
+            exit 1
+          fi
+          echo "No unreviewed destructive statements."

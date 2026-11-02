@@ -1,0 +1,29 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "yousivar-api",
+  "main": "src/index.js",
+  "compatibility_date": "2025-01-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+  "vars": {
+    "APP_URL": "https://yousivar.example",
+    "COOKIE_DOMAIN": "",
+    "SESSION_TTL_DAYS": "30"
+  },
+  "r2_buckets": [
+    {
+      "binding": "BUCKET",
+      "bucket_name": "yousivar-documents"
+    }
+  ],
+  "env": {
+    "preview": {
+      "vars": { "APP_URL": "https://preview.yousivar.example" },
+      "r2_buckets": [{ "binding": "BUCKET", "bucket_name": "yousivar-documents-preview" }]
+    },
+    "production": {
+      "vars": { "APP_URL": "https://yousivar.example" },
+      "r2_buckets": [{ "binding": "BUCKET", "bucket_name": "yousivar-documents" }]
+    }
+  }
+}

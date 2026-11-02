@@ -1,0 +1,78 @@
+name: Android (debug APK)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'capacitor.config.ts'
+      - 'package.json'
+      - 'ci/workflows/android.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  debug-apk:
+    name: Build debug APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: android-actions/setup-android@v3
+
+      - run: npm ci
+
+      - name: Build the web bundle
+        env:
+          VITE_API_BASE_URL: ${{ vars.API_BASE_URL }}
+        run: |
+          test -n "$VITE_API_BASE_URL" || { echo "::error::Set the API_BASE_URL repository variable to the deployed API URL"; exit 1; }
+          npm run build
+
+      - name: Generate the Android project on first run
+        run: |
+          if [ ! -d android ]; then
+            echo "::notice::android/ is not in the repository yet — generating it from capacitor.config.ts"
+            npm install --no-save @capacitor/cli @capacitor/core @capacitor/android
+            npx cap add android
+          fi
+
+      - name: Sync web assets into the Android project
+        run: npx cap sync android
+
+      - name: Assemble debug APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleDebug
+
+      - name: Verify the APK exists and is non-empty
+        run: |
+          apk=$(find android/app/build/outputs/apk/debug -name '*.apk' | head -1)
+          test -n "$apk" || { echo "::error::No APK was produced"; exit 1; }
+          size=$(stat -c%s "$apk")
+          echo "APK: $apk ($size bytes)"
+          test "$size" -gt 1000000 || { echo "::error::APK is implausibly small ($size bytes)"; exit 1; }
+          echo "apk_path=$apk" >> "$GITHUB_ENV"
+
+      - name: Report package metadata
+        run: |
+          "$ANDROID_HOME"/build-tools/*/aapt2 dump packagename "$apk_path" || echo "::warning::aapt2 not available for package inspection"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: yousivar-debug-apk
+          path: ${{ env.apk_path }}
+          retention-days: 14

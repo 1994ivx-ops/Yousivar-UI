@@ -1,0 +1,40 @@
+{
+  "name": "Memory",
+  "type": "object",
+  "properties": {
+    "content": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "preference",
+        "fact",
+        "project",
+        "instruction"
+      ],
+      "default": "fact"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "content"
+  ],
+  "rls": {
+    "read": {
+      "created_by_id": "{{user.id}}"
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    }
+  }
+}

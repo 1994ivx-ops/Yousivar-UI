@@ -1,0 +1,55 @@
+{
+  "name": "Message",
+  "type": "object",
+  "properties": {
+    "conversation_id": {
+      "type": "string",
+      "description": "Owning conversation id"
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "user",
+        "assistant"
+      ],
+      "description": "Author of the message"
+    },
+    "content": {
+      "type": "string",
+      "description": "Message body (markdown for assistant)"
+    },
+    "model": {
+      "type": "string",
+      "description": "Model that produced an assistant message"
+    },
+    "latency_ms": {
+      "type": "number"
+    },
+    "attachments": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Attached document file URIs"
+    }
+  },
+  "required": [
+    "conversation_id",
+    "role",
+    "content"
+  ],
+  "rls": {
+    "read": {
+      "created_by_id": "{{user.id}}"
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    }
+  }
+}

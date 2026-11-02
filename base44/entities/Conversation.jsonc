@@ -1,0 +1,46 @@
+{
+  "name": "Conversation",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Human readable conversation title"
+    },
+    "model": {
+      "type": "string",
+      "description": "Registry key of the model used for this conversation"
+    },
+    "archived": {
+      "type": "boolean",
+      "default": false
+    },
+    "pinned": {
+      "type": "boolean",
+      "default": false
+    },
+    "message_count": {
+      "type": "number",
+      "default": 0
+    },
+    "last_message_at": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "title"
+  ],
+  "rls": {
+    "read": {
+      "created_by_id": "{{user.id}}"
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    }
+  }
+}

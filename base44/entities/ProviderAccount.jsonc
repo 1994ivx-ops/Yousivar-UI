@@ -1,0 +1,119 @@
+{
+  "name": "ProviderAccount",
+  "type": "object",
+  "properties": {
+    "service": {
+      "type": "string",
+      "description": "Catalogue id of the provider (openrouter, anthropic, tavily, \u2026)"
+    },
+    "label": {
+      "type": "string",
+      "description": "Optional display name for this connection"
+    },
+    "enabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "priority": {
+      "type": "number",
+      "default": 100,
+      "description": "Lower runs first during fallback routing"
+    },
+    "base_url": {
+      "type": "string"
+    },
+    "secret_cipher": {
+      "type": "string",
+      "description": "AES-256-GCM sealed field map. Never leaves the server."
+    },
+    "key_hint": {
+      "type": "string",
+      "description": "Masked trailing characters for display only"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "connected",
+        "invalid",
+        "not_configured",
+        "error"
+      ],
+      "default": "not_configured"
+    },
+    "status_detail": {
+      "type": "string"
+    },
+    "checked_at": {
+      "type": "string"
+    },
+    "default_model": {
+      "type": "string"
+    },
+    "models_cache": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Last discovered model identifiers"
+    },
+    "models_synced_at": {
+      "type": "string"
+    },
+    "features": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Assigned capabilities: chat, compare, search, crawl, tts, notify"
+    },
+    "temperature": {
+      "type": "number"
+    },
+    "max_tokens": {
+      "type": "number"
+    },
+    "usage_requests": {
+      "type": "number",
+      "default": 0
+    },
+    "usage_errors": {
+      "type": "number",
+      "default": 0
+    },
+    "usage_tokens": {
+      "type": "number",
+      "default": 0
+    },
+    "last_latency_ms": {
+      "type": "number"
+    },
+    "last_used": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "service"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

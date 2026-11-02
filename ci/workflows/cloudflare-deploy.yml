@@ -1,0 +1,109 @@
+name: Deploy (Cloudflare)
+
+# Runs only after CI succeeds on main, or when dispatched by hand.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        type: choice
+        options: [preview, production]
+        default: preview
+
+concurrency:
+  group: deploy-${{ github.event.inputs.environment || 'production' }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    name: Validation gate
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.pick.outputs.environment }}
+    steps:
+      - id: pick
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "environment=${{ github.event.inputs.environment }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "environment=production" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Refuse to deploy a failed build
+        if: github.event_name == 'workflow_run'
+        run: |
+          if [ "${{ github.event.workflow_run.conclusion }}" != "success" ]; then
+            echo "::error::CI concluded ${{ github.event.workflow_run.conclusion }} — not deploying."
+            exit 1
+          fi
+
+  deploy-api:
+    name: API Worker (${{ needs.guard.outputs.environment }})
+    needs: guard
+    runs-on: ubuntu-latest
+    environment: ${{ needs.guard.outputs.environment }}
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm install --no-audit --no-fund
+
+      - name: Publish Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          if [ "${{ needs.guard.outputs.environment }}" = "production" ]; then
+            npx wrangler deploy --env production
+          else
+            npx wrangler versions upload --env preview
+          fi
+        # Runtime secrets live in wrangler's own store (owner action):
+        #   npx wrangler secret put DATABASE_URL --env production
+
+  deploy-web:
+    name: Frontend (${{ needs.guard.outputs.environment }})
+    needs: [guard, deploy-api]
+    runs-on: ubuntu-latest
+    environment: ${{ needs.guard.outputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build with the environment's API URL
+        env:
+          VITE_API_BASE_URL: ${{ vars.API_BASE_URL }}
+        run: |
+          test -n "$VITE_API_BASE_URL" || { echo "::error::Set the API_BASE_URL variable on this environment"; exit 1; }
+          npm run build
+
+      - name: Publish to Cloudflare Pages
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          npx wrangler pages deploy dist \
+            --project-name "${{ vars.CLOUDFLARE_PAGES_PROJECT }}" \
+            --branch "${{ needs.guard.outputs.environment == 'production' && 'main' || 'preview' }}"
+          echo "::notice::Deployment URL is the one printed by wrangler above."

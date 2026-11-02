@@ -1,0 +1,46 @@
+{
+  "name": "Document",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "file_uri": {
+      "type": "string",
+      "description": "Private storage URI"
+    },
+    "mime_type": {
+      "type": "string"
+    },
+    "size_bytes": {
+      "type": "number"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "ready",
+        "processing",
+        "failed"
+      ],
+      "default": "ready"
+    }
+  },
+  "required": [
+    "name",
+    "file_uri"
+  ],
+  "rls": {
+    "read": {
+      "created_by_id": "{{user.id}}"
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    }
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "name": "AuditLog",
+  "type": "object",
+  "properties": {
+    "action": {
+      "type": "string"
+    },
+    "actor_email": {
+      "type": "string"
+    },
+    "model": {
+      "type": "string"
+    },
+    "latency_ms": {
+      "type": "number"
+    },
+    "chars": {
+      "type": "number"
+    },
+    "detail": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "action"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {},
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

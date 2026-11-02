@@ -1,0 +1,87 @@
+name: Database migration
+
+# Never runs on push. Manual dispatch against a protected environment, so the
+# repository owner approves each run before any SQL reaches production.
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: What to do
+        type: choice
+        options: [status, dry-run, apply]
+        default: status
+      environment:
+        description: Target environment
+        type: choice
+        options: [staging, production]
+        default: staging
+      backup_confirmed:
+        description: Type YES to confirm a recent Neon branch/backup exists
+        type: string
+        default: "no"
+
+concurrency:
+  group: migrate-${{ github.event.inputs.environment }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm install --no-audit --no-fund
+
+      - name: Require a recovery point before applying
+        if: github.event.inputs.action == 'apply'
+        run: |
+          if [ "${{ github.event.inputs.backup_confirmed }}" != "YES" ]; then
+            echo "::error::Create a Neon branch/backup first, then re-run with backup_confirmed=YES."
+            exit 1
+          fi
+
+      - name: Plan
+        if: github.event.inputs.action != 'apply'
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_DIRECT_URL: ${{ secrets.DATABASE_DIRECT_URL }}
+        run: |
+          if [ "${{ github.event.inputs.action }}" = "dry-run" ]; then
+            node scripts/migrate.js --dry
+          else
+            node scripts/migrate.js --status
+          fi
+
+      - name: Apply
+        if: github.event.inputs.action == 'apply'
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_DIRECT_URL: ${{ secrets.DATABASE_DIRECT_URL }}
+        run: node scripts/migrate.js
+
+      - name: Apply the model registry seed
+        if: github.event.inputs.action == 'apply'
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_DIRECT_URL: ${{ secrets.DATABASE_DIRECT_URL }}
+        run: |
+          node --input-type=module -e "
+            import pg from 'pg';
+            import { readFile } from 'node:fs/promises';
+            const client = new pg.Client({ connectionString: process.env.DATABASE_DIRECT_URL, ssl: { rejectUnauthorized: true } });
+            await client.connect();
+            await client.query(await readFile('../database/seeds/0001_ai_models.sql', 'utf8'));
+            await client.end();
+            console.log('seed applied');
+          "
