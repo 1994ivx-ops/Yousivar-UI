@@ -25,7 +25,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -39,88 +39,130 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
-      - name: Build web app
+      - name: Build web application
         run: npm run build
 
-      - name: Initialize Android
+      - name: Initialize Android project
         run: |
           if [ ! -d android ]; then
             npx cap add android
           fi
           npx cap sync android
 
-      - name: Configure signing
+      - name: Configure release signing
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
+          set -eu
           test -n "$ANDROID_KEYSTORE_BASE64"
           test -n "$ANDROID_KEYSTORE_PASSWORD"
           test -n "$ANDROID_KEY_ALIAS"
           test -n "$ANDROID_KEY_PASSWORD"
 
           echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/yousivar-release.jks"
+          test -s "$RUNNER_TEMP/yousivar-release.jks"
 
           {
-            echo "storeFile=$RUNNER_TEMP/yousivar-release.jks"
-            echo "storePassword=$ANDROID_KEYSTORE_PASSWORD"
-            echo "keyAlias=$ANDROID_KEY_ALIAS"
-            echo "keyPassword=$ANDROID_KEY_PASSWORD"
+            printf 'storeFile=%s\n' "$RUNNER_TEMP/yousivar-release.jks"
+            printf 'storePassword=%s\n' "$ANDROID_KEYSTORE_PASSWORD"
+            printf 'keyAlias=%s\n' "$ANDROID_KEY_ALIAS"
+            printf 'keyPassword=%s\n' "$ANDROID_KEY_PASSWORD"
           } > "$RUNNER_TEMP/keystore.properties"
 
           echo "KEYSTORE_PROPERTIES=$RUNNER_TEMP/keystore.properties" >> "$GITHUB_ENV"
 
-      - name: Build signed release APK
+      - name: Patch Gradle signing configuration
         working-directory: android
         env:
           KEYSTORE_PROPERTIES: ${{ runner.temp }}/keystore.properties
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
+
           p = Path("app/build.gradle")
-          if not p.exists():
-              p = Path("app/build.gradle.kts")
-          if not p.exists():
-              raise SystemExit("Android Gradle build file not found")
+          if not p.is_file():
+              raise SystemExit(
+                  "Expected app/build.gradle (Groovy). "
+                  "No Gradle file was changed."
+              )
 
           text = p.read_text()
-          if p.name == "build.gradle":
-              signing = '''
-              def signingPropsFile = System.getenv("KEYSTORE_PROPERTIES")
-              def signingProps = new Properties()
-              if (signingPropsFile != null) {
-                  file(signingPropsFile).withInputStream { signingProps.load(it) }
-              }
 
-              android {
-                  signingConfigs {
-                      release {
-                          storeFile file(signingProps['storeFile'])
-                          storePassword signingProps['storePassword']
-                          keyAlias signingProps['keyAlias']
-                          keyPassword signingProps['keyPassword']
-                      }
+          # Repair the literal backslash-n introduced by the previous workflow.
+          text = text.replace(r'\n', '\n')
+
+          if "signingConfigs {" not in text:
+              signing = """
+              signingConfigs {
+                  release {
+                      def props = new Properties()
+                      def propsFile = System.getenv("KEYSTORE_PROPERTIES")
+                      file(propsFile).withInputStream { props.load(it) }
+                      storeFile file(props['storeFile'])
+                      storePassword props['storePassword']
+                      keyAlias props['keyAlias']
+                      keyPassword props['keyPassword']
                   }
-              '''
-              if "signingConfigs {" not in text:
-                  text = text.replace("android {", signing, 1)
-              if "signingConfig signingConfigs.release" not in text:
-                  text = text.replace(
-                      "buildTypes {",
-                      "buildTypes {\\n        release { signingConfig signingConfigs.release }",
-                      1
-                  )
-          else:
-              raise SystemExit(
-                  "Kotlin DSL detected; configure release signing for build.gradle.kts explicitly."
+              }
+          """
+              text, count = re.subn(
+                  r'android\s*\{',
+                  lambda m: m.group(0) + signing,
+                  text,
+                  count=1
               )
+              if count != 1:
+                  raise SystemExit("Could not find the android block")
+
+          # Remove any malformed release block inserted by the old workflow.
+          text = re.sub(
+              r'buildTypes\s*\{\s*release\s*\{\s*signingConfig\s+signingConfigs\.release\s*\}',
+              'buildTypes {',
+              text,
+              count=1
+          )
+
+          # Add signingConfig to the existing release block, or create one.
+          if re.search(r'buildTypes\s*\{', text) is None:
+              raise SystemExit("Could not find the buildTypes block")
+
+          match = re.search(r'buildTypes\s*\{', text)
+          tail = text[match.end():]
+
+          release = re.search(r'\brelease\s*\{', tail)
+          if release:
+              pos = match.end() + release.end()
+              text = (
+                  text[:pos]
+                  + "\n            signingConfig signingConfigs.release\n"
+                  + text[pos:]
+              )
+          else:
+              pos = match.end()
+              text = (
+                  text[:pos]
+                  + "\n        release {\n"
+                    "            signingConfig signingConfigs.release\n"
+                    "        }\n"
+                  + text[pos:]
+              )
+
+          if r'\n' in text:
+              raise SystemExit("Unexpected literal \\\\n remains in Gradle file")
+
           p.write_text(text)
+          print("Gradle release signing configuration repaired.")
           PY
 
+      - name: Build signed Release APK
+        working-directory: android
+        run: |
           chmod +x gradlew
-          ./gradlew assembleRelease
+          ./gradlew --no-daemon assembleRelease
 
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
